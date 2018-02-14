@@ -127,7 +127,6 @@ class SwipeableFlatList<ItemT> extends React.Component<Props<ItemT>, State> {
   };
 
   _renderItem = (info: Object): ?React.Element<any> => {
-    console.log('see this shit______', info)
     const slideoutView = this.props.renderQuickActions(info);
     const key = this.props.keyExtractor(info.item, info.index);
 
