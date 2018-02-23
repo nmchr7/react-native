@@ -35,7 +35,9 @@ type SwipableListProps = {
 type Props<ItemT> = SwipableListProps & FlatListProps<ItemT>;
 
 type State = {
-  openRowKey: ?string,
+  extraData: {
+    openRowKey: ?string,
+  }
 };
 
 /**
@@ -51,7 +53,7 @@ type State = {
  *
  * - It ensures that at most 1 row is swiped open (auto closes others)
  * - It can bounce the 1st row of the list so users know it's swipeable
- * - Increase performance on iOS by locking list swiping when row swiping is occurring
+ * - Increase performance on iOS by locking list swiping when row swiping is occuring
  * - More to come
  */
 
@@ -88,37 +90,44 @@ class SwipeableFlatList<ItemT> extends React.Component<Props<ItemT>, State> {
   constructor(props: Props<ItemT>, context: any): void {
     super(props, context);
     this.state = {
-      openRowKey: null,
+      extraData: {
+        openRowKey: null,
+      }
     };
 
     this._shouldBounceFirstRowOnMount = this.props.bounceFirstRowOnMount;
+
+    this.onRefFlatList = this.onRefFlatList.bind(this);
+    this._onClose = this._onClose.bind(this);
   }
 
   render(): React.Node {
     return (
       <FlatList
         {...this.props}
-        ref={ref => {
-          this._flatListRef = ref;
-        }}
+        ref={this.onRefFlatList}
         onScroll={this._onScroll}
         renderItem={this._renderItem}
+        extraData={this.state.extraData}
       />
     );
   }
 
-  _onScroll = (e): void => {
+  onRefFlatList(_flatListRef) {
+    this._flatListRef = _flatListRef;
+  }
+
+  _onScroll = (): void => {
     // Close any opens rows on ListView scroll
-    if (this.state.openRowKey) {
-      this.setState({
-        openRowKey: null,
-      });
+    if (this.state.extraData.openRowKey) {
+      this._onClose();
     }
 
     this.props.onScroll && this.props.onScroll(e);
   };
 
   _renderItem = (info: Object): ?React.Element<any> => {
+    console.log('see this shit______', info)
     const slideoutView = this.props.renderQuickActions(info);
     const key = this.props.keyExtractor(info.item, info.index);
 
@@ -127,20 +136,20 @@ class SwipeableFlatList<ItemT> extends React.Component<Props<ItemT>, State> {
       return this.props.renderItem(info);
     }
 
-    let shouldBounceOnMount = false;
-    if (this._shouldBounceFirstRowOnMount) {
-      this._shouldBounceFirstRowOnMount = false;
-      shouldBounceOnMount = true;
-    }
+    // let shouldBounceOnMount = false;
+    // if (this._shouldBounceFirstRowOnMount) {
+    //   // this._shouldBounceFirstRowOnMount = false;
+    //   shouldBounceOnMount = true;
+    // }
 
     return (
       <SwipeableRow
         slideoutView={slideoutView}
-        isOpen={key === this.state.openRowKey}
+        isOpen={key === this.state.extraData.openRowKey}
         maxSwipeDistance={this._getMaxSwipeDistance(info)}
         onOpen={() => this._onOpen(key)}
-        onClose={() => this._onClose(key)}
-        shouldBounceOnMount={shouldBounceOnMount}
+        onClose={this._onClose}
+        shouldBounceOnMount={info.index === 0}
         onSwipeEnd={this._setListViewScrollable}
         onSwipeStart={this._setListViewNotScrollable}>
         {this.props.renderItem(info)}
@@ -175,13 +184,17 @@ class SwipeableFlatList<ItemT> extends React.Component<Props<ItemT>, State> {
 
   _onOpen(key: any): void {
     this.setState({
-      openRowKey: key,
+      extraData: {
+        openRowKey: key,
+      }
     });
   }
 
-  _onClose(key: any): void {
+  _onClose(): void {
     this.setState({
-      openRowKey: null,
+      extraData: {
+        openRowKey: null,
+      }
     });
   }
 }
